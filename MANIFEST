@@ -2,3 +2,5 @@
 setup.py
 softhsm_fun/__init__.py
 softhsm_fun/softhsm_funcs.py
+softhsm_fun/test.py
+softhsm_fun/token_init.py

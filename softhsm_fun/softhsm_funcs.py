@@ -3,6 +3,7 @@ import pkcs11
 import sqlite3
 import base64
 import argparse
+from util import init_token
 
 
 class Database():
@@ -21,10 +22,12 @@ def getAESKey(session, label):
         return key
 
 
-def createRSAKey(db, token, label, store):
+def createRSAKey(db, token, label, store, printpub=False):
     with token.open(rw=True, user_pin='1234') as session:
         # Generate an AES key in this session
         pub, priv = session.generate_keypair(pkcs11.KeyType.RSA, 4096, label=label, store=True)
+        if printpub:
+            print(pub)
 
 
 def createAESKey(db, token, label, store):
@@ -66,6 +69,10 @@ def main():
     parser = argparse.ArgumentParser(description='\
     HSM scratchpad.')
     parser.add_argument(
+        '--init-token', action='store_true', dest='init_token', default=False,
+        help='Create a new token.')
+
+    parser.add_argument(
         '--gen-rsa', action='store_true', dest='gen_rsa', default=False,
         help='Generate AES key.')
     parser.add_argument(
@@ -92,13 +99,17 @@ def main():
     args = parser.parse_args()
 
     # Initialise our PKCS#11 librar
+    if args.init_token:
+        token = init_token(label=args.label)
+        print(token)
+        return
     lib = pkcs11.lib('/usr/local/lib/softhsm/libsofthsm2.so')
     token = lib.get_token(token_label=args.slot)
     db = Database()
     if args.gen_aes:
         createAESKey(db, token, args.label, args.store)
     if args.gen_rsa:
-        createRSAKey(db, token, args.label, args.store)
+        createRSAKey(db, token, args.label, args.store, True)
     elif args.crypt:
         cryptData(db, token, args.data, args.label)
     elif args.decrypt:
